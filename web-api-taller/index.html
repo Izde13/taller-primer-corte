@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogo de Películas</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>Catálogo de Películas</h1>
+
+            <button class="menu-toggle" aria-expanded="false">☰</button>
+            
+            <nav class="nav">
+                <ul>
+                    <li><a href="#inicio">Inicio</a></li>
+                    <li><a href="#datos">Datos</a></li>
+                    <li><a href="#lista">Lista</a></li>
+                    <li><a href="#contacto">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main id="main" class="main">
+        <div class="container">
+            
+            <section id="inicio" class="hero">
+                <h2>Bienvenido</h2>
+                <p>Catálogo de películas online.</p>
+            </section>
+
+            <section id="datos" class="section">
+                <h2>Información</h2>
+                <p>Los datos se cargan desde un objeto JavaScript que simula una respuesta de API.</p>
+                <p>Total de resultados: <span id="total-results">Cargando...</span></p>
+            </section>
+
+            <section id="lista" class="section">
+                <h2>Películas de Batman</h2>
+                <div class="grid" id="data-container">
+                    <!-- Los datos se cargan aquí dinámicamente con JavaScript -->
+                    <p>Cargando películas...</p>
+                </div>
+                
+                <!-- Paginación -->
+                <div class="pagination" id="pagination">
+                    <button id="prev-btn" disabled>Anterior</button>
+                    <button class="page-btn active" data-page="1">1</button>
+                    <button class="page-btn" data-page="2">2</button>
+                    <button id="next-btn">Siguiente</button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contacto" class="footer">
+        <div class="container">
+            <p>&copy; 2025 Mi Página Web</p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
