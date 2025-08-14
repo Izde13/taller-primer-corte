@@ -1,72 +1,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalogo de Películas</title>
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catálogo de Películas</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <header>
+    <h1>Catálogo de Películas</h1>
+    <div class="controls">
+      <button id="btnBatman" class="active" aria-pressed="true">Batman</button>
+      <button id="btnMarvel" aria-pressed="false">Marvel</button>
+      <button id="btnStarWars" aria-pressed="false">Star Wars</button>
 
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <h1>Catálogo de Películas</h1>
+      <label>
+        <input id="toggleMode" type="checkbox" />
+        Usar API real
+      </label>
+      <input id="apikey" placeholder="OMDb API Key" style="background:#0b0d11;color:#e8eaed;border:1px solid #23262d;padding:.45rem .6rem;border-radius:.5rem;width:16rem;">
+    </div>
+  </header>
 
-            <button class="menu-toggle" aria-expanded="false">☰</button>
-            
-            <nav class="nav">
-                <ul>
-                    <li><a href="#inicio">Inicio</a></li>
-                    <li><a href="#datos">Datos</a></li>
-                    <li><a href="#lista">Lista</a></li>
-                    <li><a href="#contacto">Contacto</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+  <main>
+    <div class="stats">
+      Total reportado: <span id="total">0</span> · Mostrando: <span id="count">0</span>
+    </div>
 
-    <!-- Main content -->
-    <main id="main" class="main">
-        <div class="container">
-            
-            <section id="inicio" class="hero">
-                <h2>Bienvenido</h2>
-                <p>Catálogo de películas online.</p>
-            </section>
+    <section id="status" class="sr-only" aria-live="polite"></section>
 
-            <section id="datos" class="section">
-                <h2>Información</h2>
-                <p>Los datos se cargan desde un objeto JavaScript que simula una respuesta de API.</p>
-                <p>Total de resultados: <span id="total-results">Cargando...</span></p>
-            </section>
+    <section id="grid" class="grid" aria-label="Listado de películas"></section>
 
-            <section id="lista" class="section">
-                <h2>Películas de Batman</h2>
-                <div class="grid" id="data-container">
-                    <!-- Los datos se cargan aquí dinámicamente con JavaScript -->
-                    <p>Cargando películas...</p>
-                </div>
-                
-                <!-- Paginación -->
-                <div class="pagination" id="pagination">
-                    <button id="prev-btn" disabled>Anterior</button>
-                    <button class="page-btn active" data-page="1">1</button>
-                    <button class="page-btn" data-page="2">2</button>
-                    <button id="next-btn">Siguiente</button>
-                </div>
-            </section>
+    <nav id="pagination" class="pagination" aria-label="Paginación">
+      <button id="prevBtn" disabled>Anterior</button>
+      <button id="nextBtn" disabled>Siguiente</button>
+    </nav>
+  </main>
 
-        </div>
-    </main>
+  <!-- (Opcional) también podrías definir la key global así:
+  <script>window.OMDB_API_KEY = "TU_API_KEY_REAL";</script>
+  -->
 
-    <!-- Footer -->
-    <footer id="contacto" class="footer">
-        <div class="container">
-            <p>&copy; 2025 Mi Página Web</p>
-        </div>
-    </footer>
-
-    <script src="js/app.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
