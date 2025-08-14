@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catálogo de Películas</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Catálogo de Películas</h1>
+    <div class="controls">
+      <button id="btnBatman" class="active" aria-pressed="true">Batman</button>
+      <button id="btnMarvel" aria-pressed="false">Marvel</button>
+      <button id="btnStarWars" aria-pressed="false">Star Wars</button>
+
+      <label>
+        <input id="toggleMode" type="checkbox" />
+        Usar API real
+      </label>
+      <input id="apikey" placeholder="OMDb API Key" style="background:#0b0d11;color:#e8eaed;border:1px solid #23262d;padding:.45rem .6rem;border-radius:.5rem;width:16rem;">
+    </div>
+  </header>
+
+  <main>
+    <div class="stats">
+      Total reportado: <span id="total">0</span> · Mostrando: <span id="count">0</span>
+    </div>
+
+    <section id="status" class="sr-only" aria-live="polite"></section>
+
+    <section id="grid" class="grid" aria-label="Listado de películas"></section>
+
+    <nav id="pagination" class="pagination" aria-label="Paginación">
+      <button id="prevBtn" disabled>Anterior</button>
+      <button id="nextBtn" disabled>Siguiente</button>
+    </nav>
+  </main>
+
+  <!-- (Opcional) también podrías definir la key global así:
+  <script>window.OMDB_API_KEY = "TU_API_KEY_REAL";</script>
+  -->
+
+  <script src="js/app.js"></script>
+</body>
+</html>
