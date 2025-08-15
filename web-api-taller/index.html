@@ -1,28 +1,57 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Catálogo de Películas</title>
   <link rel="stylesheet" href="css/styles.css">
+  <meta name="color-scheme" content="light dark">
 </head>
 <body>
-  <header>
-    <h1>Catálogo de Películas</h1>
-    <div class="controls">
-      <button id="btnBatman" class="active" aria-pressed="true">Batman</button>
-      <button id="btnMarvel" aria-pressed="false">Marvel</button>
-      <button id="btnStarWars" aria-pressed="false">Star Wars</button>
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <h1 class="logo">Cine<span>Flex</span></h1>
+    </div>
 
-      <label>
-        <input id="toggleMode" type="checkbox" />
-        Usar API real
-      </label>
-      <input id="apikey" placeholder="OMDb API Key" style="background:#0b0d11;color:#e8eaed;border:1px solid #23262d;padding:.45rem .6rem;border-radius:.5rem;width:16rem;">
+    <div class="header-actions">
+      <!-- Theme toggle -->
+      <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
+        <!-- ícono cambia vía CSS -->
+        <span class="icon theme"></span>
+      </button>
     </div>
   </header>
 
-  <main>
+  <nav class="top-controls">
+    <div class="pill-group" role="tablist" aria-label="Colecciones">
+      <button id="btnBatman" class="pill active" aria-pressed="true" role="tab">Batman</button>
+      <button id="btnMarvel" class="pill" aria-pressed="false" role="tab">Marvel</button>
+      <button id="btnStarWars" class="pill" aria-pressed="false" role="tab">Star Wars</button>
+    </div>
+
+    <div class="mode-group">
+      <label class="switch">
+        <input id="toggleMode" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+      <span class="switch-label">Usar API real</span>
+
+      <input id="apikey" class="apikey" placeholder="OMDb API Key">
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section id="hero" class="hero" aria-label="Destacado">
+    <div class="hero-bg" id="heroBg" aria-hidden="true"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h2 id="heroTitle">Explora y descubre</h2>
+      <p id="heroSubtitle" class="muted">Elige una colección y navega por el catálogo.</p>
+    </div>
+  </section>
+
+  <main class="container">
     <div class="stats">
       Total reportado: <span id="total">0</span> · Mostrando: <span id="count">0</span>
     </div>
