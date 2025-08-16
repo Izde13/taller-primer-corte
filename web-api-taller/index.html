@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo de Películas</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <meta name="color-scheme" content="light dark">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <h1 class="logo">Cine<span>Flex</span></h1>
+    </div>
+
+    <div class="header-actions">
+      <!-- Cambiar tema -->
+      <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
+        <span class="icon theme"></span>
+      </button>
+
+      <!-- Configuración -->
+      <button id="settingsBtn" class="icon-btn" aria-label="Configuración" title="Configuración">
+        <span class="icon gear"></span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="top-controls">
+    <!-- Buscador -->
+    <form class="search" id="searchForm" role="search" aria-label="Buscar películas">
+      <span class="search-icon">🔎</span>
+      <input id="searchInput" type="search" placeholder="Buscar en OMDb (ej. matrix, dune)…" autocomplete="off" />
+      <button type="button" id="clearSearch" class="clear" aria-label="Limpiar búsqueda">✕</button>
+    </form>
+  </nav>
+
+  <!-- Modal de Configuración -->
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form method="dialog" class="settings-card" id="settingsForm">
+      <h3>Configuración</h3>
+      <label class="field">
+        <span>OMDb API Key</span>
+        <input id="apikeySetting" type="text" placeholder="p.ej. 503d794f" autocomplete="off" />
+      </label>
+
+      <div class="actions">
+        <button type="submit" id="saveSettings" class="btn primary">Guardar</button>
+        <button type="button" id="closeSettings" class="btn">Cerrar</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <section id="hero" class="hero" aria-label="Destacado">
+    <div class="hero-bg" id="heroBg" aria-hidden="true"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h2 id="heroTitle">Explora y descubre</h2>
+      <p id="heroSubtitle" class="muted">Elige una colección y navega por el catálogo.</p>
+    </div>
+  </section>
+
+  <main class="container">
+    <div class="stats">
+      Total reportado: <span id="total">0</span> · Mostrando: <span id="count">0</span>
+    </div>
+
+    <section id="status" class="sr-only" aria-live="polite"></section>
+
+    <section id="grid" class="grid" aria-label="Listado de películas"></section>
+
+    <nav id="pagination" class="pagination" aria-label="Paginación">
+      <button id="prevBtn" disabled>Anterior</button>
+      <button id="nextBtn" disabled>Siguiente</button>
+    </nav>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+
+</html>
