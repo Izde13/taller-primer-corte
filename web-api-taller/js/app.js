@@ -78,7 +78,7 @@ const STATE = {
   page: 1,                      // Página actual de navegación
   items: [],                    // Array de películas cargadas (mock o API)
   totalReported: 0,             // Total de resultados reportado por API o mock
-  apiKey: (window && window.OMDB_API_KEY) || "",  // API key (puede venir de window global)
+  apiKey: (window && window.OMDB_API_KEY) || "503d794f",  // API key (puede venir de window global)
   search: "",                   // Término de búsqueda local (filtrado)
   searchMode: false,            // true = mostrando resultados de búsqueda API
   searchTerm: ""                // Término actual de búsqueda externa (API)
