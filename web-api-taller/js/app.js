@@ -1,36 +1,112 @@
-// Versión de entrega. Modo MOCK por defecto.
+// =============================================================================
+// CINEFLEX - CATÁLOGO DE PELÍCULAS
+// =============================================================================
+// Aplicación que permite navegar por colecciones de películas usando la API
+// de OMDb o datos simulados (MOCK). Incluye búsqueda en tiempo real, paginación,
+// temas visuales y gestión de API keys.
+//
+// Versión de entrega. Modo MOCK por defecto para funcionar sin configuración.
+// =============================================================================
 
 // -----------------------------
-// CONFIG
+// CONFIGURACIÓN Y PERSISTENCIA
 // -----------------------------
 
-// STATE: objeto global que almacena el estado de la aplicación.
+// Clave para guardar la API key en localStorage
+const LS_KEY = "cineflex_omdb_api_key";
+
+/**
+ * Carga la API key guardada desde localStorage al iniciar la aplicación
+ */
+function loadApiKeyFromStorage() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) STATE.apiKey = saved;
+}
+
+/**
+ * Inicializa el modal de configuración de API key
+ * Configura eventos para abrir, cerrar y guardar la configuración
+ */
+function initSettingsModal() {
+  const dlg = document.getElementById("settingsDialog");
+  const btn = document.getElementById("settingsBtn");
+  const closeBtn = document.getElementById("closeSettings");
+  const form = document.getElementById("settingsForm");
+  const input = document.getElementById("apikeySetting");
+
+  // Verificar que todos los elementos existan antes de continuar
+  if (!dlg || !btn || !form || !input) return;
+
+  // Evento para abrir el modal y cargar el valor actual
+  btn.addEventListener("click", () => {
+    input.value = STATE.apiKey || "";
+    dlg.showModal();
+  });
+
+  // Evento para cerrar el modal sin guardar
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => dlg.close());
+  }
+
+  // Evento para guardar la configuración
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const val = (input.value || "").trim();
+    STATE.apiKey = val;
+
+    // Guardar o eliminar de localStorage según si hay valor
+    if (val) localStorage.setItem(LS_KEY, val);
+    else localStorage.removeItem(LS_KEY);
+
+    dlg.close();
+    setStatus("API key actualizada.");
+  });
+}
+
+// -----------------------------
+// ESTADO GLOBAL DE LA APLICACIÓN
+// -----------------------------
+
+/**
+ * STATE: Objeto global que centraliza todo el estado de la aplicación
+ * Contiene configuración, datos cargados y estado de la UI
+ */
 const STATE = {
-  mode: "mock",                 // "mock" | "api"  (por defecto mock)
-  collectionKey: "batman",      // colección seleccionada
-  itemsPerPage: 6,              // tamaño de página de UI
-  page: 1,                      // página actual de UI
-  items: [],                    // items cargados (mock o API)
-  totalReported: 0,             // total reportado por API o mock
-  apiKey: (window && window.OMDB_API_KEY) || ""  // si defines window.OMDB_API_KEY
+  mode: "mock",                 // "mock" | "api" - Modo de funcionamiento actual
+  collectionKey: "batman",      // Colección actualmente seleccionada
+  itemsPerPage: 6,              // Cantidad de películas por página en la UI
+  page: 1,                      // Página actual de navegación
+  items: [],                    // Array de películas cargadas (mock o API)
+  totalReported: 0,             // Total de resultados reportado por API o mock
+  apiKey: (window && window.OMDB_API_KEY) || "",  // API key (puede venir de window global)
+  search: "",                   // Término de búsqueda local (filtrado)
+  searchMode: false,            // true = mostrando resultados de búsqueda API
+  searchTerm: ""                // Término actual de búsqueda externa (API)
 };
 
-// COLLECTIONS: objeto con los nombres de las colecciones disponibles.
+/**
+ * COLLECTIONS: Mapeo de claves internas a términos de búsqueda
+ * Define las colecciones predefinidas disponibles
+ */
 const COLLECTIONS = {
   batman: "batman",
   marvel: "marvel",
   "star wars": "star wars"
 };
 
+// Configuración de la API OMDb
 const BASE_URL = "https://www.omdbapi.com/";
-const MIN_RESULTS_PER_COLLECTION = 50;
-const MAX_PAGES_PER_COLLECTION = 10;
+const MIN_RESULTS_PER_COLLECTION = 50;  // Mínimo de resultados a recopilar por colección
+const MAX_PAGES_PER_COLLECTION = 10;    // Máximo de páginas a consultar por colección
 
 // -----------------------------
-// MOCKS mínimos (offline)
+// DATOS SIMULADOS (MODO MOCK)
 // -----------------------------
 
-// MOCKS: datos simulados para funcionar sin conexión.
+/**
+ * MOCKS: Datos simulados para funcionar sin conexión a internet
+ * Permite probar la aplicación sin necesidad de API key
+ */
 const MOCKS = {
   batman: {
     Search: [
@@ -43,19 +119,35 @@ const MOCKS = {
       { Title: "Batman Forever", Year: "1995", imdbID: "tt0112462", Type: "movie", Poster: "https://m.media-amazon.com/images/M/MV5BMTUyNjJhZWItMTZkNS00NDc4LTllNjUtYTg3NjczMzA5ZTViXkEyXkFqcGc@._V1_SX300.jpg" },
       { Title: "The Lego Batman Movie", Year: "2017", imdbID: "tt4116284", Type: "movie", Poster: "https://m.media-amazon.com/images/M/MV5BMTcyNTEyOTY0M15BMl5BanBnXkFtZTgwOTAyNzU3MDI@._V1_SX300.jpg" }
     ],
-    totalResults: "500",
+    totalResults: "500",  // Simula que hay 500 resultados totales
     Response: "True"
   }
 };
 
 // -----------------------------
-// UTILIDADES
+// FUNCIONES UTILITARIAS
 // -----------------------------
 
 /**
- * Escapa caracteres especiales para evitar XSS en HTML.
- * @param {string} s - Cadena a escapar.
- * @returns {string} - Cadena escapada.
+ * Implementación de debounce para evitar múltiples llamadas rápidas
+ * Útil para inputs de búsqueda que no deben disparar en cada tecla
+ * @param {Function} fn - Función a ejecutar con delay
+ * @param {number} delay - Tiempo de espera en milisegundos
+ * @returns {Function} - Función con debounce aplicado
+ */
+function debounce(fn, delay = 200) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), delay);
+  };
+}
+
+/**
+ * Escapa caracteres especiales para prevenir ataques XSS
+ * Convierte caracteres peligrosos en sus entidades HTML equivalentes
+ * @param {string} s - Cadena a escapar
+ * @returns {string} - Cadena segura para insertar en HTML
  */
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, (ch) =>
@@ -64,8 +156,9 @@ function escapeHtml(s) {
 }
 
 /**
- * Muestra un mensaje de estado en el elemento #status.
- * @param {string} msg - Mensaje a mostrar.
+ * Muestra mensajes de estado al usuario y en consola
+ * Centraliza el manejo de notificaciones de la aplicación
+ * @param {string} msg - Mensaje a mostrar
  */
 function setStatus(msg) {
   const el = document.getElementById("status");
@@ -74,21 +167,24 @@ function setStatus(msg) {
 }
 
 /**
- * Crea una tarjeta visual para una película.
- * @param {object} movie - Objeto película con propiedades Title, Year, Type, Poster.
- * @returns {HTMLElement} - Elemento article con la tarjeta.
+ * Crea una tarjeta visual HTML para una película
+ * Genera el elemento DOM completo con imagen, título y metadatos
+ * @param {object} movie - Objeto película con Title, Year, Type, Poster
+ * @returns {HTMLElement} - Elemento article listo para insertar en el DOM
  */
 function createMovieCard(movie) {
   const card = document.createElement("article");
   card.className = "card";
-  card.tabIndex = 0;
+  card.tabIndex = 0;  // Hacer la tarjeta accesible por teclado
   card.setAttribute("aria-label", "Película " + ((movie && movie.Title) || ""));
 
+  // Manejar poster con fallback a imagen por defecto
   const poster =
     movie && movie.Poster && movie.Poster !== "N/A"
       ? movie.Poster
       : "assets/not_found.jpg";
 
+  // Generar HTML de la tarjeta con datos escapados por seguridad
   card.innerHTML = `
     <img 
       src="${poster}" 
@@ -105,30 +201,32 @@ function createMovieCard(movie) {
 }
 
 // -----------------------------
-// OMDb
+// INTEGRACIÓN CON API OMDb
 // -----------------------------
 
 /**
- * Construye la URL de búsqueda para la API OMDb.
- * @param {string} apiKey - Clave de API OMDb.
- * @param {string} term - Término de búsqueda.
- * @param {number} page - Número de página.
- * @returns {string} - URL completa para la búsqueda.
+ * Construye la URL completa para consultas a la API OMDb
+ * Incluye todos los parámetros necesarios: API key, término, tipo, página
+ * @param {string} apiKey - Clave de API OMDb
+ * @param {string} term - Término de búsqueda
+ * @param {number} page - Número de página (por defecto 1)
+ * @returns {string} - URL completa lista para fetch
  */
 function buildSearchUrl(apiKey, term, page) {
   const params = new URLSearchParams({
     apikey: apiKey,
     s: term,
-    type: "movie",
+    type: "movie",  // Solo buscar películas
     page: String(page || 1)
   });
   return `${BASE_URL}?${params.toString()}`;
 }
 
 /**
- * Elimina duplicados en un arreglo de películas usando imdbID.
- * @param {Array} arr - Arreglo de objetos película.
- * @returns {Array} - Arreglo sin duplicados.
+ * Elimina películas duplicadas usando imdbID como clave única
+ * Necesario porque la API puede devolver duplicados entre páginas
+ * @param {Array} arr - Array de objetos película
+ * @returns {Array} - Array sin duplicados
  */
 function dedupeByImdbID(arr) {
   const seen = {};
@@ -136,7 +234,7 @@ function dedupeByImdbID(arr) {
   for (let i = 0; i < (arr || []).length; i++) {
     const it = arr[i];
     const id = it && it.imdbID;
-    if (!id || seen[id]) continue;
+    if (!id || seen[id]) continue;  // Saltar si no tiene ID o ya fue visto
     seen[id] = true;
     out.push(it);
   }
@@ -144,19 +242,24 @@ function dedupeByImdbID(arr) {
 }
 
 /**
- * Realiza una petición a la API OMDb y procesa la respuesta.
- * @param {string} url - URL de la petición.
- * @returns {Promise<object>} - Resultado con ok, error, results, totalResults.
+ * Realiza una petición HTTP a la API OMDb y procesa la respuesta
+ * Maneja errores de red, HTTP y errores específicos de la API
+ * @param {string} url - URL completa para la petición
+ * @returns {Promise<object>} - Objeto con ok, error, results, totalResults
  */
 async function fetchOmdbPage(url) {
   try {
     const res = await fetch(url, { method: "GET" });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
     const data = await res.json();
     console.log("[OMDb][RAW]", { url, data });
+
+    // La API OMDb devuelve Response: "False" en caso de error
     if (data.Response === "False") {
       return { ok: false, error: data.Error || "Unknown OMDb error", results: [], totalResults: 0 };
     }
+
     const results = Array.isArray(data.Search) ? data.Search : [];
     const total = Number(data.totalResults || results.length);
     return { ok: true, results, totalResults: total };
@@ -167,9 +270,10 @@ async function fetchOmdbPage(url) {
 }
 
 /**
- * Descarga una colección de películas desde OMDb, paginando hasta minResults o maxPages.
- * @param {object} options - Opciones: apiKey, searchTerm, minResults, maxPages.
- * @returns {Promise<object>} - Objeto con searchTerm, totalReported, count, items.
+ * Descarga una colección completa paginando a través de la API OMDb
+ * Recopila múltiples páginas hasta alcanzar minResults o maxPages
+ * @param {object} options - Configuración: apiKey, searchTerm, minResults, maxPages
+ * @returns {Promise<object>} - Objeto con searchTerm, totalReported, count, items
  */
 async function fetchCollection(options) {
   const opts = options || {};
@@ -184,19 +288,24 @@ async function fetchCollection(options) {
   let page = 1;
   let totalReported = null;
 
-  // Ciclo para recolectar páginas hasta cumplir condiciones
+  // Ciclo para recopilar páginas hasta cumplir las condiciones de parada
   while (page <= maxPages && (collected.length < minResults || page === 1)) {
     const url = buildSearchUrl(apiKey, searchTerm, page);
     setStatus(`Cargando "${searchTerm}" — página ${page}...`);
     const result = await fetchOmdbPage(url);
 
+    // Manejar errores o fin de resultados
     if (!result.ok) {
       console.warn(`[OMDb] Fin o error en "${searchTerm}" p.${page}: ${result.error}`);
       break;
     }
+
+    // Capturar total reportado en la primera página exitosa
     if (totalReported == null) totalReported = result.totalResults;
 
     collected = collected.concat(result.results);
+
+    // Condiciones de parada: sin resultados, suficientes datos, o total alcanzado
     if (result.results.length === 0) break;
     if (collected.length >= minResults || collected.length >= totalReported) break;
 
@@ -209,77 +318,161 @@ async function fetchCollection(options) {
   return { searchTerm, totalReported, count: unique.length, items: unique };
 }
 
+/**
+ * Busca un término específico en OMDb (usado para búsquedas del usuario)
+ * Similar a fetchCollection pero optimizado para búsquedas interactivas
+ * @param {string} term - Término a buscar
+ * @param {object} options - Configuración con minResults y maxPages
+ * @returns {Promise<object>} - Resultado con ok, items, totalResults, error
+ */
+async function searchOmdbTerm(term, { minResults = 50, maxPages = 10 } = {}) {
+  const apiKey = (STATE.apiKey || "").trim();
+
+  // Validar que existe API key antes de intentar búsqueda
+  if (!apiKey) {
+    setStatus("⚠️ Debes colocar tu OMDb API key para buscar.");
+    return { ok: false, items: [], totalResults: 0, error: "Missing API key" };
+  }
+
+  let collected = [];
+  let page = 1;
+  let totalReported = null;
+
+  // Recopilar páginas de resultados
+  while (page <= maxPages && (collected.length < minResults || page === 1)) {
+    const url = buildSearchUrl(apiKey, term, page);
+    setStatus(`Buscando "${term}" — página ${page}…`);
+    const result = await fetchOmdbPage(url);
+
+    if (!result.ok) {
+      setStatus(`Error de búsqueda: ${result.error}`);
+      break;
+    }
+    if (totalReported == null) totalReported = result.totalResults;
+
+    collected = collected.concat(result.results);
+    if (result.results.length === 0) break;
+    if (collected.length >= minResults || collected.length >= totalReported) break;
+
+    page++;
+  }
+
+  const unique = dedupeByImdbID(collected);
+  return { ok: true, items: unique, totalResults: totalReported || unique.length };
+}
+
 // -----------------------------
-// DATA → UI
+// PROCESAMIENTO DE DATOS Y UI
 // -----------------------------
 
 /**
- * Renderiza la página actual de películas en el grid.
- * @param {Array} items - Arreglo de películas a mostrar.
+ * Aplica filtros locales a los items cargados basado en STATE.search
+ * Soporta filtrado por:
+ * - Título (case-insensitive)
+ * - Año (si se escriben 4 dígitos)
+ * - Tipo con sintaxis "type:movie", "type:series", etc.
+ * @returns {Array} - Array filtrado de películas
  */
-function render(items) {
+function getFilteredItems() {
+  const q = (STATE.search || "").trim().toLowerCase();
+  if (!q) return STATE.items;
+
+  // Extraer filtros especiales como "type:movie"
+  let typeFilter = null;
+  let text = q;
+
+  const typeMatch = q.match(/\btype:(movie|series|episode)\b/);
+  if (typeMatch) {
+    typeFilter = typeMatch[1];
+    text = q.replace(typeMatch[0], "").trim();
+  }
+
+  const isYear = /^\d{4}$/.test(text);
+
+  return STATE.items.filter(it => {
+    const title = (it.Title || "").toLowerCase();
+    const year = String(it.Year || "").toLowerCase();
+    const type = (it.Type || "").toLowerCase();
+
+    // Filtro por título o año
+    const titleOk = text ? title.includes(text) || (isYear && year.includes(text)) : true;
+    // Filtro por tipo
+    const typeOk = typeFilter ? type === typeFilter : true;
+
+    return titleOk && typeOk;
+  });
+}
+
+/**
+ * Renderiza la página actual de películas en el grid HTML
+ * Calcula qué elementos mostrar según la página actual y items por página
+ */
+function render() {
   const grid = document.getElementById("grid");
   if (!grid) return;
 
+  // Determinar dataset: búsqueda API vs filtro local
+  const dataset = STATE.searchMode ? STATE.items : getFilteredItems();
   const startIndex = (STATE.page - 1) * STATE.itemsPerPage;
-  const slice = (items || []).slice(startIndex, startIndex + STATE.itemsPerPage);
+  const slice = dataset.slice(startIndex, startIndex + STATE.itemsPerPage);
 
+  // Limpiar grid y agregar nuevos elementos
   grid.innerHTML = "";
   if (!slice.length) {
     grid.innerHTML = "<p>No hay resultados para esta página.</p>";
   } else {
     const frag = document.createDocumentFragment();
-    for (let i = 0; i < slice.length; i++) {
-      frag.appendChild(createMovieCard(slice[i]));
-    }
+    for (let i = 0; i < slice.length; i++) frag.appendChild(createMovieCard(slice[i]));
     grid.appendChild(frag);
   }
 
+  // Actualizar contador de elementos mostrados
   document.getElementById("count").textContent = String(slice.length);
-
-  // Actualiza hero con el primer elemento general (de toda la colección)
-  updateHero(STATE.items[0]);
+  // Actualizar hero con la primera película visible
+  updateHero(dataset[0] || STATE.items[0]);
 }
 
 /**
- * Construye la paginación en la UI.
- * @param {number} totalItems - Total de elementos en la colección.
+ * Construye dinámicamente los botones de paginación
+ * Crea botones numerados (1, 2, 3...) y configura eventos de navegación
  */
-function buildPagination(totalItems) {
+function buildPagination() {
+  const totalItems = (STATE.searchMode ? STATE.items : getFilteredItems()).length;
   const totalPages = Math.max(1, Math.ceil(totalItems / STATE.itemsPerPage));
   const pag = document.getElementById("pagination");
   const prevBtn = document.getElementById("prevBtn");
   const nextBtn = document.getElementById("nextBtn");
   if (!pag || !prevBtn || !nextBtn) return;
 
-  // Elimina botones previos
+  // Eliminar botones de páginas anteriores
   const old = pag.querySelectorAll(".page-btn");
   for (let i = 0; i < old.length; i++) old[i].remove();
 
-  // Crea botones de página 1..N
+  // Crear botones numerados para cada página
   for (let p = 1; p <= totalPages; p++) {
     const btn = document.createElement("button");
     btn.className = "page-btn" + (p === STATE.page ? " active" : "");
     btn.textContent = String(p);
     btn.addEventListener("click", () => {
       STATE.page = p;
-      render(STATE.items);
+      render();
       updatePaginationButtons(totalPages);
     });
-    nextBtn.before(btn);
+    nextBtn.before(btn);  // Insertar antes del botón "Siguiente"
   }
 
+  // Configurar botones de navegación anterior/siguiente
   prevBtn.onclick = () => {
     if (STATE.page > 1) {
       STATE.page--;
-      render(STATE.items);
+      render();
       updatePaginationButtons(totalPages);
     }
   };
   nextBtn.onclick = () => {
     if (STATE.page < totalPages) {
       STATE.page++;
-      render(STATE.items);
+      render();
       updatePaginationButtons(totalPages);
     }
   };
@@ -288,15 +481,19 @@ function buildPagination(totalItems) {
 }
 
 /**
- * Actualiza el estado visual de los botones de paginación.
- * @param {number} totalPages - Total de páginas.
+ * Actualiza el estado visual de los botones de paginación
+ * Deshabilita botones cuando no hay más páginas y marca la página activa
+ * @param {number} totalPages - Total de páginas disponibles
  */
 function updatePaginationButtons(totalPages) {
   const prevBtn = document.getElementById("prevBtn");
   const nextBtn = document.getElementById("nextBtn");
+
+  // Deshabilitar botones en los extremos
   if (prevBtn) prevBtn.disabled = STATE.page === 1;
   if (nextBtn) nextBtn.disabled = STATE.page === totalPages;
 
+  // Actualizar clase 'active' en botones numerados
   const btns = document.querySelectorAll(".page-btn");
   for (let i = 0; i < btns.length; i++) {
     const page = Number(btns[i].textContent);
@@ -306,18 +503,29 @@ function updatePaginationButtons(totalPages) {
 }
 
 /**
- * Actualiza los contadores de estadísticas en la UI.
+ * Actualiza los contadores de estadísticas mostrados al usuario
+ * Sincroniza la información de total vs mostrados en la página actual
  */
 function updateStats() {
-  document.getElementById("total").textContent = String(STATE.totalReported || STATE.items.length);
-  document.getElementById("count").textContent = String(Math.min(STATE.itemsPerPage, STATE.items.length));
+  // Total reportado por API o mock
+  document.getElementById("total").textContent =
+    String(STATE.totalReported || STATE.items.length);
+
+  // Cantidad mostrada en la página actual (se actualiza también en render())
+  const filtered = getFilteredItems();
+  const startIndex = (STATE.page - 1) * STATE.itemsPerPage;
+  const slice = filtered.slice(startIndex, startIndex + STATE.itemsPerPage);
+  document.getElementById("count").textContent = String(slice.length);
 }
 
-// --------- HERO dinámico (tipo portada) ---------
+// -----------------------------
+// SECCIÓN HERO (PORTADA DINÁMICA)
+// -----------------------------
 
 /**
- * Actualiza la sección hero (portada) con los datos de una película.
- * @param {object} movie - Objeto película con propiedades Title, Year, Type, Poster.
+ * Actualiza la sección hero con la información de una película destacada
+ * Cambia el fondo, título y subtítulo basado en la primera película visible
+ * @param {object} movie - Objeto película con Title, Year, Type, Poster
  */
 function updateHero(movie) {
   const heroBg = document.getElementById("heroBg");
@@ -326,6 +534,7 @@ function updateHero(movie) {
 
   if (!heroBg || !heroTitle || !heroSubtitle) return;
 
+  // Estado por defecto cuando no hay película
   if (!movie) {
     heroBg.style.backgroundImage = "none";
     heroTitle.textContent = "Explora y descubre";
@@ -333,6 +542,7 @@ function updateHero(movie) {
     return;
   }
 
+  // Configurar hero con datos de la película
   const poster = movie.Poster && movie.Poster !== "N/A" ? movie.Poster : "assets/not_found.jpg";
   heroBg.style.backgroundImage = `url("${poster}")`;
   heroTitle.textContent = movie.Title || "Destacado";
@@ -340,25 +550,34 @@ function updateHero(movie) {
 }
 
 // -----------------------------
-// CARGA (mock o API)
+// CARGA DE DATOS (MOCK O API)
 // -----------------------------
 
 /**
- * Carga una colección (mock o API) y actualiza la UI.
- * @param {string} key - Clave de la colección ("batman", "marvel", "star wars").
+ * Carga una colección predefinida y actualiza toda la UI
+ * Puede usar datos mock o consultar la API según el modo actual
+ * @param {string} key - Clave de colección ("batman", "marvel", "star wars")
  */
 async function loadCollection(key) {
+  // Resetear estado para nueva colección
   STATE.collectionKey = key;
   STATE.page = 1;
+  STATE.searchMode = false;
+  STATE.search = "";
+  STATE.searchTerm = "";
 
-  setActiveCollectionButton(key);
+  // Limpiar input de búsqueda
+  const si = document.getElementById("searchInput");
+  if (si) si.value = "";
 
   if (STATE.mode === "mock") {
+    // Modo MOCK: usar datos simulados
     const mock = MOCKS[key] || { Search: [], totalResults: "0" };
     STATE.items = mock.Search.slice();
     STATE.totalReported = Number(mock.totalResults || STATE.items.length);
     setStatus("[MOCK] Colección: " + key);
   } else {
+    // Modo API: consultar OMDb
     const term = COLLECTIONS[key];
     const apiKey = STATE.apiKey && STATE.apiKey.trim();
     const result = await fetchCollection({
@@ -372,47 +591,34 @@ async function loadCollection(key) {
     setStatus("[API] Colección: " + key);
   }
 
-  buildPagination(STATE.items.length);
+  // Actualizar toda la interfaz
+  buildPagination();
   updateStats();
-  render(STATE.items);
-}
-
-/**
- * Marca el botón de colección activa en la UI.
- * @param {string} key - Clave de la colección.
- */
-function setActiveCollectionButton(key) {
-  const ids = { batman: "btnBatman", marvel: "btnMarvel", "star wars": "btnStarWars" };
-  for (const k in ids) {
-    const el = document.getElementById(ids[k]);
-    if (!el) continue;
-    const active = k === key;
-    el.classList.toggle("active", active);
-    el.setAttribute("aria-pressed", String(active));
-  }
+  render();
 }
 
 // -----------------------------
-// TEMA (Light/Dark) con persistencia
+// SISTEMA DE TEMAS (LIGHT/DARK)
 // -----------------------------
 
 /**
- * Aplica el tema visual (light/dark) a la página.
- * @param {string|null} theme - "light", "dark" o null (auto).
+ * Aplica un tema visual específico modificando atributos del HTML
+ * @param {string|null} theme - "light", "dark" o null para auto
  */
 function applyTheme(theme) {
   const html = document.documentElement;
   if (theme === "light") html.setAttribute("data-theme", "light");
   else if (theme === "dark") html.setAttribute("data-theme", "dark");
-  else html.removeAttribute("data-theme");
+  else html.removeAttribute("data-theme");  // Usar preferencia del sistema
 }
 
 /**
- * Inicializa el tema visual y el botón de cambio de tema.
+ * Inicializa el sistema de temas con persistencia en localStorage
+ * Configura el botón de cambio de tema y carga preferencia guardada
  */
 function initTheme() {
   const saved = localStorage.getItem("cineflex_theme");
-  applyTheme(saved || "dark"); // por defecto "dark" para look tipo Netflix
+  applyTheme(saved || "dark"); // Por defecto tema oscuro (estilo Netflix)
 
   const btn = document.getElementById("themeToggle");
   if (!btn) return;
@@ -426,48 +632,141 @@ function initTheme() {
 }
 
 // -----------------------------
-// INIT
+// INICIALIZACIÓN DE LA APLICACIÓN
 // -----------------------------
 
 /**
- * Inicializa la aplicación: listeners y carga inicial.
+ * Función de inicialización principal que configura todos los componentes
+ * Se ejecuta automáticamente al cargar el script (IIFE)
  */
 (function init() {
-  const btnBatman = document.getElementById("btnBatman");
-  const btnMarvel = document.getElementById("btnMarvel");
-  const btnStarWars = document.getElementById("btnStarWars");
   const toggleMode = document.getElementById("toggleMode");
-  const apikeyInput = document.getElementById("apikey");
 
-  // Tema
+  // Inicializar sistema de temas
   initTheme();
 
-  // Listeners de colección
-  if (btnBatman) btnBatman.addEventListener("click", () => loadCollection("batman"));
-  if (btnMarvel) btnMarvel.addEventListener("click", () => loadCollection("marvel"));
-  if (btnStarWars) btnStarWars.addEventListener("click", () => loadCollection("star wars"));
+  // Cargar configuración guardada
+  loadApiKeyFromStorage();
+  initSettingsModal();
 
-  // Modo API/Mock
+  // === CONFIGURACIÓN DEL BUSCADOR ===
+  const searchForm = document.getElementById("searchForm");
+  const searchInput = document.getElementById("searchInput");
+  const clearSearch = document.getElementById("clearSearch");
+
+  // Prevenir submit del formulario (solo usar input events)
+  if (searchForm) searchForm.addEventListener("submit", (e) => e.preventDefault());
+
+  /**
+   * Función de búsqueda externa con debounce
+   * Maneja tanto búsquedas como limpieza del input
+   */
+  const runExternalSearch = debounce(async (value) => {
+    const term = (value || "").trim();
+
+    if (!term) {
+      // Búsqueda vacía: volver al catálogo por defecto
+      STATE.searchMode = false;
+      STATE.search = "";
+      STATE.searchTerm = "";
+      await loadCollection("batman");
+      return;
+    }
+
+    // Realizar búsqueda externa via API
+    STATE.searchMode = true;
+    STATE.search = term;
+    STATE.searchTerm = term;
+    STATE.page = 1;
+
+    const result = await searchOmdbTerm(term, { minResults: 60, maxPages: 10 });
+    if (result.ok) {
+      STATE.items = result.items;
+      STATE.totalReported = result.totalResults;
+      setStatus(`[BÚSQUEDA] "${term}" — encontrados: ${result.items.length} (reportados: ${result.totalResults})`);
+    } else {
+      // Error en búsqueda: mostrar resultados vacíos
+      STATE.items = [];
+      STATE.totalReported = 0;
+    }
+
+    // Actualizar interfaz con resultados de búsqueda
+    buildPagination();
+    updateStats();
+    render();
+  }, 400);  // Delay de 400ms para evitar consultas excesivas
+
+  // === EVENTOS DEL BUSCADOR ===
+
+  // Input de búsqueda: ejecutar búsqueda con debounce
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => runExternalSearch(e.target.value));
+  }
+
+  // Botón limpiar: resetear input y ejecutar búsqueda vacía
+  if (clearSearch) {
+    clearSearch.addEventListener("click", () => {
+      if (searchInput) searchInput.value = "";
+      runExternalSearch("");
+    });
+  }
+
+  // === TOGGLE MODO MOCK/API ===
+
+  /**
+   * Switch para cambiar entre modo MOCK (datos simulados) y API (datos reales)
+   * Recarga automáticamente la colección actual con el nuevo modo
+   */
   if (toggleMode) {
     toggleMode.addEventListener("change", function () {
       STATE.mode = this.checked ? "api" : "mock";
-      if (STATE.mode === "api") {
-        setStatus("Modo API real activado. Coloca tu OMDb API key.");
-      } else {
-        setStatus("Modo MOCK activado (sin llamadas de red).");
-      }
-      loadCollection(STATE.collectionKey);
+      setStatus(STATE.mode === "api"
+        ? "Modo API real activado. Configura tu OMDb API key en ⚙."
+        : "Modo MOCK activado (sin llamadas de red).");
+
+      // Recargar colección actual con el nuevo modo
+      loadCollection("batman");
     });
   }
 
-  // API key
-  if (apikeyInput) {
-    if (STATE.apiKey) apikeyInput.value = STATE.apiKey;
-    apikeyInput.addEventListener("input", function () {
-      STATE.apiKey = this.value;
-    });
-  }
+  // === CARGA INICIAL ===
 
-  // Carga inicial
-  loadCollection(STATE.collectionKey);
+  // Cargar catálogo por defecto al iniciar la aplicación
+  loadCollection("batman");
 })();
+
+// =============================================================================
+// FIN DEL ARCHIVO
+// =============================================================================
+//
+// RESUMEN DE FUNCIONALIDADES:
+//
+// 1. MODOS DE OPERACIÓN:
+//    - MOCK: Funciona con datos simulados sin conexión
+//    - API: Consulta la API real de OMDb (requiere API key)
+//
+// 2. NAVEGACIÓN:
+//    - Colecciones predefinidas (Batman)
+//    - Paginación dinámica con botones numerados
+//    - Búsqueda en tiempo real con debounce
+//
+// 3. UI/UX:
+//    - Tema claro/oscuro con persistencia
+//    - Hero dinámico que cambia según la película destacada
+//    - Tarjetas de películas responsivas
+//
+// 4. CONFIGURACIÓN:
+//    - Modal para gestionar API key de OMDb
+//    - Persistencia de configuración en localStorage
+//    - Manejo de errores y estados de carga
+//
+// 5. ACCESIBILIDAD:
+//    - Labels ARIA apropiados
+//    - Navegación por teclado
+//    - Mensajes de estado para lectores de pantalla
+//
+// 6. SEGURIDAD:
+//    - Escape de HTML para prevenir XSS
+//    - Validación de datos de entrada
+//    - Manejo seguro de URLs de imágenes
+// =============================================================================
